@@ -22,7 +22,7 @@ public class App {
 	// URL url = new
 	// URL("http://www.borsaitaliana.it/borsa/fondi/dettaglio/1FADB253518.html?lang=it");
 	// URL url = new URL("http://www.calvino.ge.it/");
-	System.out.println("Arg0: " + args[0]);
+	// System.out.println("Arg0: " + args[0]);
 
 	URL url = new URL(args[0]);
 
@@ -31,13 +31,15 @@ public class App {
 	InputStream is = con.getInputStream();
 
 	try {
-	    // String tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
-	    String tabella = readFile();
-	    System.out.println(tabella);
-	    System.out.println("Estratto1:" + ExtractVal(tabella, 1));
-	    System.out.println("Estratto3:" + ExtractVal(tabella, 3));
+	    String tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
+	    // String tabella = readFile();
+	    // importo (senza punti decimali e con il punto a separare i decimali)
+	    System.out.print(ExtractVal(tabella, 1).replace(".", "").replace(',', '.'));
+	    System.out.print(",");
+	    // data
+	    System.out.println(ExtractVal(tabella, 3));
 	} catch (Exception e) {
-	    e.printStackTrace();
+	    System.out.println("ERROR reading from:" + args[0]);
 	}
     }
 
