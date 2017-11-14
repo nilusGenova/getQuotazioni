@@ -1,11 +1,16 @@
 package getQuotazioni;
 
+//BufferedReader //FileReader //FileWriter //PrintWriter
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class App {
 
@@ -14,28 +19,90 @@ public class App {
 	// Make a URL to the web page
 	// URL url = new
 	// URL("http://stackoverflow.com/questions/6159118/using-java-to-pull-data-from-a-webpage");
-	URL url = new URL("http://www.borsaitaliana.it/borsa/fondi/dettaglio/1FADB253518.html?lang=it");
+	// URL url = new
+	// URL("http://www.borsaitaliana.it/borsa/fondi/dettaglio/1FADB253518.html?lang=it");
+	// URL url = new URL("http://www.calvino.ge.it/");
+	System.out.println("Arg0: " + args[0]);
+
+	URL url = new URL(args[0]);
 
 	// Get the input stream through URL Connection
 	URLConnection con = url.openConnection();
 	InputStream is = con.getInputStream();
 
-	// Once you have the Input Stream, it's just plain old Java IO stuff.
-
-	// For this case, since you are interested in getting plain-text web page
-	// I'll use a reader and output the text content to System.out.
-
-	// For binary content, it's better to directly read the bytes from stream and
-	// write
-	// to the target file.
-
-	BufferedReader br = new BufferedReader(new InputStreamReader(is));
-
-	String line = null;
-
-	// read each line and write to System.out
-	while ((line = br.readLine()) != null) {
-	    System.out.println(line);
+	try {
+	    // String tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
+	    String tabella = readFile();
+	    System.out.println(tabella);
+	    System.out.println("Estratto1:" + ExtractVal(tabella, 1));
+	    System.out.println("Estratto3:" + ExtractVal(tabella, 3));
+	} catch (Exception e) {
+	    e.printStackTrace();
 	}
     }
+
+    static String readFile() throws IOException {
+	byte[] encoded = Files.readAllBytes(Paths.get("./tabellaReal"));
+	return new String(encoded);
+    }
+    // <td>4,926</td> QUESTO
+    // <td>4,931</td>
+    // <td class="name">EUR</td>
+    // <td>10/11/17</td> QUESTO
+
+    public static String ExtractVal(String s, int n) {
+	// <td>.*<\/td>
+	int i = 0;
+	String str = s;
+	while (i < n) {
+	    str = str.substring(str.indexOf("<td>") + 4);
+	    i++;
+	}
+	return str.substring(0, str.indexOf("</td>"));
+    }
+
+    public static String ExtractFromStream(boolean include, String firstWord, String lastWord, InputStream is)
+	    throws Exception {
+
+	StringBuilder outString = new StringBuilder();
+	boolean selecting = false;
+	boolean searching = true;
+	BufferedReader br = new BufferedReader(new InputStreamReader(is));
+	Pattern firstPattern = Pattern.compile(".*" + firstWord);
+	Pattern endPattern = Pattern.compile(lastWord + ".*");
+	String line = br.readLine();
+	while (searching && (line != null)) {
+	    if (!selecting) {
+		Matcher m = firstPattern.matcher(line);
+		while (m.find()) {
+		    if (m.group().length() != 0) {
+			String str = m.group();
+			if (include) {
+			    outString.append(firstWord);
+			}
+			selecting = true;
+		    }
+		}
+	    }
+	    if (selecting) {
+		Matcher m = endPattern.matcher(line);
+		while (m.find()) {
+		    if (m.group().length() != 0) {
+			searching = false;
+			outString.append(line.substring(0, m.start()));
+			if (include) {
+			    outString.append(lastWord);
+			}
+		    }
+		}
+		if (searching) {
+		    outString.append(line);
+		}
+	    }
+	    line = br.readLine();
+	}
+	br.close();
+	return outString.toString();
+    }
+
 }
