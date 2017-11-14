@@ -12,7 +12,9 @@ public class App {
     public static void main(String[] args) throws IOException {
 
 	// Make a URL to the web page
-	URL url = new URL("http://stackoverflow.com/questions/6159118/using-java-to-pull-data-from-a-webpage");
+	// URL url = new
+	// URL("http://stackoverflow.com/questions/6159118/using-java-to-pull-data-from-a-webpage");
+	URL url = new URL("http://www.borsaitaliana.it/borsa/fondi/dettaglio/1FADB253518.html?lang=it");
 
 	// Get the input stream through URL Connection
 	URLConnection con = url.openConnection();
