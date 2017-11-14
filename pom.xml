@@ -4,4 +4,81 @@
   <artifactId>getQuotazioni</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>getQuotazioni</name>
+  
+  <properties>
+     <powermock.version>1.6.1</powermock.version>
+     <log4j.version>2.9.1</log4j.version>
+  </properties>
+  
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+    
+  <build>
+  <plugins>  
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <version>3.1</version>
+      <configuration>
+        <source>1.8</source>
+        <target>1.8</target>
+      </configuration>
+    </plugin> 
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-shade-plugin</artifactId>
+      <version>3.0.0</version>
+      <configuration>
+        <createDependencyReducedPom>true</createDependencyReducedPom>
+        <filters>
+          <filter>
+            <artifact>*:*</artifact>
+            <excludes>
+              <exclude>META-INF/*.SF</exclude>
+              <exclude>META-INF/*.DSA</exclude>
+              <exclude>META-INF/*.RSA</exclude>
+            </excludes>
+          </filter>
+        </filters>
+      </configuration>
+ 
+      <executions>
+        <execution>
+          <phase>package</phase>
+          <goals>
+            <goal>shade</goal>
+          </goals>
+          <configuration>
+            <transformers>
+              <transformer
+                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+              <transformer
+                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <manifestEntries>
+                  <Main-Class>getQuotazioni.App</Main-Class>
+                </manifestEntries>
+              </transformer>
+            </transformers>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>   
+    <plugin>
+         <artifactId>maven-surefire-plugin</artifactId>
+         <version>2.5</version>
+         <configuration>
+           <forkMode>always</forkMode>
+           <systemPropertyVariables>
+              <log4j.configuration>file:${basedir}/src/main/resources/log4j-silent.properties</log4j.configuration>
+           </systemPropertyVariables>
+         </configuration>
+    </plugin>
+  </plugins>
+</build>
 </project>
