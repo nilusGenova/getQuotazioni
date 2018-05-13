@@ -2,6 +2,9 @@ package getQuotazioni;
 
 //BufferedReader //FileReader //FileWriter //PrintWriter
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,7 +17,18 @@ import java.util.regex.Pattern;
 
 public class App {
 
+    // arguments:
+    // $href $IdQuotaz $observer $refValue $percTolerance $alertFile
     public static void main(String[] args) throws IOException {
+
+	getQuotation(args[0], args[1], "1".equals(args[2]), Double.parseDouble(args[3]), Integer.parseInt(args[4]),
+		args[5]);
+    }
+
+    private static void getQuotation(final String urlAddr, final String id, final boolean observer,
+	    final Double refValue, final Integer percTolerance, final String alertFilename) {
+	final String importo;
+	final String data;
 
 	// Make a URL to the web page
 	// URL url = new
@@ -24,26 +38,33 @@ public class App {
 	// URL url = new URL("http://www.calvino.ge.it/");
 	// System.out.println("Arg0: " + args[0]);
 
-	URL url = new URL(args[0]);
-
-	// Get the input stream through URL Connection
-	URLConnection con = url.openConnection();
-	InputStream is = con.getInputStream();
-
+	URL url;
 	try {
+	    url = new URL(urlAddr);
+
+	    // Get the input stream through URL Connection
+	    URLConnection con = url.openConnection();
+	    InputStream is = con.getInputStream();
+
 	    String tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
 	    // String tabella = readFile();
-	    // importo (senza punti decimali e con il punto a separare i decimali)
-	    System.out.print(ExtractVal(tabella, 1).replace(".", "").replace(',', '.'));
-	    System.out.print(",");
+	    // importo (senza punti e con il punto a separare i decimali)
+	    importo = ExtractVal(tabella, 1).replace(".", "").replace(',', '.');
 	    // data
-	    System.out.println(ExtractVal(tabella, 3));
+	    data = ExtractVal(tabella, 3);
+	    System.out.print(importo);
+	    System.out.print(",");
+	    System.out.println(data);
+	    if (observer) {
+		checkForAlert(id, data, importo, refValue, percTolerance, alertFilename);
+	    }
 	} catch (Exception e) {
-	    System.out.println("ERROR reading from:" + args[0]);
+	    e.printStackTrace();
+	    System.out.println("ERROR reading from:" + urlAddr);
 	}
     }
 
-    static String readFile() throws IOException {
+    private static String readFile() throws IOException {
 	byte[] encoded = Files.readAllBytes(Paths.get("./tabellaReal"));
 	return new String(encoded);
     }
@@ -52,7 +73,7 @@ public class App {
     // <td class="name">EUR</td>
     // <td>10/11/17</td> QUESTO
 
-    public static String ExtractVal(String s, int n) {
+    private static String ExtractVal(String s, int n) {
 	// <td>.*<\/td>
 	int i = 0;
 	String str = s;
@@ -63,7 +84,7 @@ public class App {
 	return str.substring(0, str.indexOf("</td>"));
     }
 
-    public static String ExtractFromStream(boolean include, String firstWord, String lastWord, InputStream is)
+    private static String ExtractFromStream(boolean include, String firstWord, String lastWord, InputStream is)
 	    throws Exception {
 
 	StringBuilder outString = new StringBuilder();
@@ -105,6 +126,37 @@ public class App {
 	}
 	br.close();
 	return outString.toString();
+    }
+
+    // alert.txt file format:
+    // each line: #id #data #val #refValue
+    // #id quotazione
+    // #data quotazione
+    // #val valore quotazione
+    // #refValue valore di riferimento
+    private static void checkForAlert(final String id, final String data, final String importo, final Double refValue,
+	    final Integer percTolerance, final String alertFilename) {
+	final Double val = Double.parseDouble(importo);
+	// System.out.print("val=" + val + " refVal=" + refValue + " diff=" +
+	// Math.abs(val - refValue) + " perc="
+	// + (refValue * percTolerance / 100));
+	if (Math.abs(val - refValue) > (refValue * percTolerance / 100)) {
+	    BufferedWriter writer = null;
+	    try {
+		// create a temporary file
+		File alertFile = new File(alertFilename);
+		writer = new BufferedWriter(new FileWriter(alertFile, true));
+		writer.write(id + " " + data + " " + importo + " " + refValue + "\n");
+	    } catch (Exception e) {
+		e.printStackTrace();
+	    } finally {
+		try {
+		    // Close the writer regardless of what happens...
+		    writer.close();
+		} catch (Exception e) {
+		}
+	    }
+	}
     }
 
 }
