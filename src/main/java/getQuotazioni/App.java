@@ -4,6 +4,7 @@ package getQuotazioni;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,17 +16,44 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class App {
+public final class App {
 
     // arguments:
-    // $href $IdQuotaz $observer $refValue $percTolerance $alertFile
-    public static void main(String[] args) throws IOException {
+    // inputfile outputfile
+    public static void main(String[] args) {
 
-	getQuotation(args[0], args[1], "1".equals(args[2]), Double.parseDouble(args[3]), Integer.parseInt(args[4]),
-		args[5]);
+	if ((args.length != 2)) {
+	    System.out.println("ERROR wrong parameters: inputfile outputfile");
+	    System.out.println("   Input file format:");
+	    System.out.println("      IdQuotaz,name,href,observer,refValue,percTolerance,alertFile");
+	    System.out.println("   Output file format:");
+	    System.out.println("      IdQuotaz,name,quote,date");
+	    return;
+	}
+	try (BufferedReader br = new BufferedReader(new FileReader(args[0]))) {
+	    BufferedWriter writer = new BufferedWriter(new FileWriter(new File(args[1]), true));
+
+	    // Input file format:
+	    // 0:IdQuotaz 1:name 2:href 3:observer 4:refValue 5:percTolerance 6:alertFile
+	    for (String line; (line = br.readLine()) != null;) {
+		if (line.charAt(0) != '#') {
+		    String[] array = line.split(",");
+		    String quotation = getQuotation(array[2], array[0], "1".equals(array[3]),
+			    Double.parseDouble(array[4]), Integer.parseInt(array[5]), array[6]);
+		    // Output file format:
+		    // dbId,name,quote,date
+		    writer.write(array[0] + "," + array[1] + "," + quotation + "\n");
+		}
+	    }
+	    writer.close();
+	    br.close();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    System.out.println("ERROR reading from file:" + args[0]);
+	}
     }
 
-    private static void getQuotation(final String urlAddr, final String id, final boolean observer,
+    private static String getQuotation(final String urlAddr, final String id, final boolean observer,
 	    final Double refValue, final Integer percTolerance, final String alertFilename) {
 	final String importo;
 	final String data;
@@ -52,19 +80,18 @@ public class App {
 	    importo = ExtractVal(tabella, 1).replace(".", "").replace(',', '.');
 	    // data
 	    data = ExtractVal(tabella, 3);
-	    System.out.print(importo);
-	    System.out.print(",");
-	    System.out.println(data);
 	    if (observer) {
 		checkForAlert(id, data, importo, refValue, percTolerance, alertFilename);
 	    }
+	    return importo + "," + data;
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.out.println("ERROR reading from:" + urlAddr);
 	}
+	return "0,12/12/66";
     }
 
-    private static String readFile() throws IOException {
+    private String readFile() throws IOException {
 	byte[] encoded = Files.readAllBytes(Paths.get("./tabellaReal"));
 	return new String(encoded);
     }
@@ -143,7 +170,6 @@ public class App {
 	if (Math.abs(val - refValue) > (refValue * percTolerance / 100)) {
 	    BufferedWriter writer = null;
 	    try {
-		// create a temporary file
 		File alertFile = new File(alertFilename);
 		writer = new BufferedWriter(new FileWriter(alertFile, true));
 		writer.write(id + " " + data + " " + importo + " " + refValue + "\n");
