@@ -67,26 +67,36 @@ public final class App {
 	// System.out.println("Arg0: " + args[0]);
 
 	URL url;
+	String tabella = null;
 	try {
 	    url = new URL(urlAddr);
 
 	    // Get the input stream through URL Connection
 	    URLConnection con = url.openConnection();
+	    String redirect = con.getHeaderField("Location");
+	    if (redirect != null) {
+		con = new URL(redirect).openConnection();
+	    }
 	    InputStream is = con.getInputStream();
 
-	    String tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
-	    // String tabella = readFile();
-	    // importo (senza punti e con il punto a separare i decimali)
-	    importo = ExtractVal(tabella, 1).replace(".", "").replace(',', '.');
-	    // data
-	    data = ExtractVal(tabella, 3);
-	    if (observer) {
-		checkForAlert(id, data, importo, refValue, percTolerance, alertFilename);
+	    tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
+	    if (!"".equals(tabella)) {
+		// String tabella = readFile();
+		// importo (senza punti e con il punto a separare i decimali)
+		importo = ExtractVal(tabella, 1).replace(".", "").replace(',', '.');
+		// data
+		data = ExtractVal(tabella, 3);
+		if (observer) {
+		    checkForAlert(id, data, importo, refValue, percTolerance, alertFilename);
+		}
+		return importo + "," + data;
+	    } else {
+		System.out.println("ERROR no extraction from:" + urlAddr);
 	    }
-	    return importo + "," + data;
 	} catch (Exception e) {
-	    e.printStackTrace();
+	    // e.printStackTrace();
 	    System.out.println("ERROR reading from:" + urlAddr);
+	    System.out.println("table extracted from web:" + tabella);
 	}
 	return "0,12/12/66";
     }
@@ -95,17 +105,22 @@ public final class App {
 	byte[] encoded = Files.readAllBytes(Paths.get("./tabellaReal"));
 	return new String(encoded);
     }
+
     // <td>4,926</td> QUESTO
     // <td>4,931</td>
     // <td class="name">EUR</td>
     // <td>10/11/17</td> QUESTO
-
     private static String ExtractVal(String s, int n) {
 	// <td>.*<\/td>
 	int i = 0;
 	String str = s;
 	while (i < n) {
-	    str = str.substring(str.indexOf("<td>") + 4);
+	    try {
+		str = str.substring(str.indexOf("<td>") + 4);
+	    } catch (Exception e) {
+		System.out.println("ERROR extracting " + n + " from " + s);
+		throw e;
+	    }
 	    i++;
 	}
 	return str.substring(0, str.indexOf("</td>"));
@@ -122,6 +137,7 @@ public final class App {
 	Pattern endPattern = Pattern.compile(lastWord + ".*");
 	String line = br.readLine();
 	while (searching && (line != null)) {
+	    // System.out.println(line);
 	    if (!selecting) {
 		Matcher m = firstPattern.matcher(line);
 		while (m.find()) {
