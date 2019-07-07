@@ -79,13 +79,13 @@ public final class App {
 	    }
 	    InputStream is = con.getInputStream();
 
-	    tabella = ExtractFromStream(false, "<th>Ultima", "Rendimenti", is);
+	    tabella = ExtractFromStream(false, "Ultima", "</table>", is); // "Rendimenti"
 	    if (!"".equals(tabella)) {
 		// String tabella = readFile();
 		// importo (senza punti e con il punto a separare i decimali)
-		importo = ExtractVal(tabella, 1).replace(".", "").replace(',', '.');
+		importo = ExtractVal(tabella, 6).replace(".", "").replace(',', '.');
 		// data
-		data = ExtractVal(tabella, 3);
+		data = ExtractVal(tabella, 9);
 		if (observer) {
 		    checkForAlert(id, data, importo, refValue, percTolerance, alertFilename);
 		}
@@ -94,7 +94,7 @@ public final class App {
 		System.out.println("ERROR no extraction from:" + urlAddr);
 	    }
 	} catch (Exception e) {
-	    // e.printStackTrace();
+	    e.printStackTrace();
 	    System.out.println("ERROR reading from:" + urlAddr);
 	    System.out.println("table extracted from web:" + tabella);
 	}
@@ -110,20 +110,60 @@ public final class App {
     // <td>4,931</td>
     // <td class="name">EUR</td>
     // <td>10/11/17</td> QUESTO
+    //
+    // Adesso:
+    // <span class="t-text -center -size-xs"><strong>Ultima</strong></span>
+    // </th>
+    // <th>
+    // <span class="t-text -center -size-xs"><strong>Precedente</strong></span>
+    // </th>
+    // <th>
+    // <span class="t-text -center -size-xs"><strong>Valuta</strong></span>
+    // </th>
+    // <th>
+    // <span class="t-text -center -size-xs"><strong>Data</strong></span>
+    // </th>
+    // <th>
+    // <span class="t-text -center -size-xs"><strong>Variazione</strong></span>
+    // </th>
+    // </tr>
+    // </thead>
+    // <tbody>
+    // <tr>
+    // <td>
+    // <span class="t-text -center -size-xs">116,27</span> QUESTO
+    // </td>
+    // <td>
+    // <span class="t-text -center -size-xs">115,98</span>
+    // </td>
+    // <td>
+    // <span class="t-text -center -size-xs">EUR</span>
+    // </td>
+    // <td>
+    // <span class="t-text -center -size-xs">03/07/19</span> QUESTO
+    // </td>
+    // <td>
+    // <span class="t-text -center -size-xs">+0,25</span>
+    // </td>
+    // </tr>
+    // </tbody>
+    // <td>
     private static String ExtractVal(String s, int n) {
+	final String matchingPatternBegin = "<span class=\"t-text -center -size-xs\">";
+	final String matchingPatternEnd = "</span>";
 	// <td>.*<\/td>
 	int i = 0;
 	String str = s;
 	while (i < n) {
 	    try {
-		str = str.substring(str.indexOf("<td>") + 4);
+		str = str.substring(str.indexOf(matchingPatternBegin) + matchingPatternBegin.length());
 	    } catch (Exception e) {
 		System.out.println("ERROR extracting " + n + " from " + s);
 		throw e;
 	    }
 	    i++;
 	}
-	return str.substring(0, str.indexOf("</td>"));
+	return str.substring(0, str.indexOf(matchingPatternEnd));
     }
 
     private static String ExtractFromStream(boolean include, String firstWord, String lastWord, InputStream is)
